@@ -1,0 +1,147 @@
+O conjunto de dados escolhio foi baseado no gosto de um dos integrantes do grupo, devido à sua paixão por esporte, foram encontrados dados sobre o físico básico de atletas que competiram nas olimpíadas desde 1896 ae 2016. Os atributos dos dados são:
+	
+	ID: identificador único para cada atleta
+    Name: nome do atleta
+    Sex: sexo do atleta
+    Age: idade do atleta
+    Heigh: altura do atleta
+    Weight: peso do atleta
+    Team: país pelo qual o atleta competiu
+    NOC: network operations center de onde foi extraída a informação
+    Games: ano e temporada
+    Year: ano da competição
+    Season: temporada da competição
+    City: cidade da competição
+    Sport: esporte competido
+    Event: categoria competida dentro do esporte
+    Medal: medalha ganhou na competição
+
+A partir destes dados foram estudadas as aulas apresentadas pelo professor ministrante da disciplina através dos slides disponibilizados no moodle e foram encontrados os passos que o grupo deveria seguir para mineirar os dados, veja os passos seguidos para o desenvolvimento desse trabalho:
+
+	Instalando recursos:
+		- Primeiramente a biblioteca 'pandas' teve de ser instalada através do pip do python3:
+
+			$ pip3 install pandas
+
+		- Depois, para importar os dados que foram adquiridos em formato csv usamos uma das funções do pandas, usando o interpretador python3 fica assim:
+
+			$ python3
+
+			>>> import panda as pd
+			>>> filepath = 'athlete_events.csv'
+			>>> data = pd.read_csv(filepath)
+
+
+	Explorando os dados:
+		- É possível que haja objetos semelhantes ou idênticos no mesmo conjunto de dados. Neste caso, é preciso que tais objetos sejam combinados, pois objetos duplicados (multiplicados) podem resultar a redução de eficiência do algoritmo de mineração;
+		- Uma boa forma de conhecer os dados é explorando suas características. A exploração dos dados consiste em uma investigação preliminar dos dados com o intuito de compreender melhor suas características. Ex: Estatística Resumida;
+		- Estatísticas Resumidas são informações que capturam diversas características de uma grande quantidade de valores. Exemplos: frequência e moda, medidas de localização (média, mediana), porcentagem e medidas de dispersão (variação e variância)
+		- Primeiramente foi feita uma análise geral dos dados numéricos:
+
+			>>> data.describe()
+
+			                  ID            Age         Height         Weight           Year
+			count  271116.000000  261642.000000  210945.000000  208241.000000  271116.000000
+			mean    68248.954396      25.556898     175.338970      70.702393    1978.378480
+			std     39022.286345       6.393561      10.518462      14.348020      29.877632
+			min         1.000000      10.000000     127.000000      25.000000    1896.000000
+			25%     34643.000000      21.000000     168.000000      60.000000    1960.000000
+			50%     68205.000000      24.000000     175.000000      70.000000    1988.000000
+			75%    102097.250000      28.000000     183.000000      79.000000    2002.000000
+			max    135571.000000      97.000000     226.000000     214.000000    2016.000000
+
+		- Curiosamente nota-se que:
+			* o atleta mais novo registrado possuia apenas 10 anos
+			* o mais velho já registrado tinha 97 anos
+			* o mais leve possuia 25 quilos
+			* o mais pesado 214 quilos
+
+		- Em seguida verificou se a co-variância para encontrar relação entre os dados:
+
+			>>> data.cov()
+
+			                  ID         Age       Height       Weight          Year
+			ID      1.522739e+09 -905.379998 -4569.988638 -5135.523131  13856.509870
+			Age    -9.053800e+02   40.877620     8.049101    16.716392    -21.074820
+			Height -4.569989e+03    8.049101   110.638048   120.284795     10.658135
+			Weight -5.135523e+03   16.716392   120.284795   205.865678      5.603904
+			Year    1.385651e+04  -21.074820    10.658135     5.603904    892.672893
+
+
+		- Atributo totalmente idependentes um do outros possuem co-variância = 0, atributos com valores negativos são inversamente proporcionais e positivos são diretamente proporcionais. Podemos notar que os valores extrapolar e variam muito de tamanho, por esse motivo a a variãncia não é a melhor medida a ser utilizade vistoq ue ela não é padronizada. Aplicou-se então a correlação:
+
+			>>> data.corr()
+
+			              ID       Age    Height    Weight      Year
+			ID      1.000000 -0.003631 -0.011141 -0.009176  0.011885
+			Age    -0.003631  1.000000  0.138246  0.212069 -0.115137
+			Height -0.011141  0.138246  1.000000  0.796213  0.047578
+			Weight -0.009176  0.212069  0.796213  1.000000  0.019095
+			Year    0.011885 -0.115137  0.047578  0.019095  1.000000
+
+		- Podemos notar que a diagonal da matriz é compastas pelo valor 1, visto que um dado é totalmente proporcional a ele mesmo. Podemos notar também que a matiz é simétrica e que não há muita relação entre os dados. Os dados que mais se correlacionam são 'altura X idade', com um valor na faixa de '0.212' e 'altura X peso' com valor na faixa de '0.796'
+
+		- As medalhas foram adicionadas como coluna para análise, usando seguinte código:
+
+			for i in data.index:
+			    if data.at[i, 'Medal'] == 'Gold':
+			    	data.at[i, 'Medal'] = 3
+			    elif data.at[i, 'Medal'] == 'Silver':
+			    	data.at[i, 'Medal'] = 2
+			    elif data.at[i, 'Medal'] == 'Bronze':
+			    	data.at[i, 'Medal'] = 1	
+
+			data[['Medal']] = data[['Medal']].apply(pd.to_numeric)
+
+		Assim a coluna deixa de ser do tipo 'object' e passa a ter o tipo 'int64' onde:
+
+			* Ouro = 3
+			* Prata = 2
+			* Bronze = 1
+			* Nenhuma = 0
+
+		A correlação foi novamente calculada para verificar se as medalhas tinham alguma relação com outros atributos:
+
+			>>> data.corr()
+
+			              ID       Age    Height    Weight      Year     Medal
+			ID      1.000000  0.000555  0.011114  0.010938  0.011885  0.010842
+			Age     0.000555  1.000000  0.086514  0.114378  0.094453  0.040343
+			Height  0.011114  0.086514  1.000000  0.899466  0.652054  0.013332
+			Weight  0.010938  0.114378  0.899466  1.000000  0.622125  0.026123
+			Year    0.011885  0.094453  0.652054  0.622125  1.000000 -0.060652
+			Medal   0.010842  0.040343  0.013332  0.026123 -0.060652  1.000000
+
+		Pouca relação foi encontrada. Partiu-se então para a próximo passo.
+
+		Seleção de dados: Foram procuradas colunas que correspondensem a dados redundantes dentro do datasheet, as combinações encontradas foram:
+
+			- Games X Year + Season
+
+		Assim podemos excluir uma das possibilidades, escolheu-se a da direita, pois são duas colunas a menos para calcular os dados.
+
+			l = list(data)
+			l.remove('Year')
+			l.remove('Season')
+			data = data[l]
+			print(list(data))
+
+		Para reduzir a dimensionalidade dos dados foi usado o PCA, Análise de Componentes Principais, as funções necessárias estão presentes na biblioteca sklearn. Então, primeiramente instalou-se a biblioteca
+
+			$ sudo pip3 install sklearn
+
+		Standardize the Data: PCA is effected by scale so you need to scale the features in your data before applying PCA. Use StandardScaler to help you standardize the dataset’s features onto unit scale (mean = 0 and variance = 1) which is a requirement for the optimal performance of many machine learning algorithms. If you want to see the negative effect not scaling your data can have, scikit-learn has a section on the effects of not standardizing your data.
+
+			from sklearn.preprocessing import StandardScaler
+
+			features = ['Age', 'Height', 'Weight', 'Year']
+			x = data.loc[:, features].values
+			x = StandardScaler().fit_transform(x)
+
+			pca = PCA(n_components=2)
+			principalComponents = pca.fit_transform(x)
+			principalDf = pd.DataFrame(data=principalComponents, columns=['PC1', 'PC2'])
+			principalDf = pd.concat([principalDf, df[['Sport']]], axis = 1)
+			s.pd.DataFrame(data = principalComponents)
+
+
